@@ -10,8 +10,8 @@ if len(sys.argv) < 2:
     sys.exit(2)
 
 pygame.init()
-GAMEOVER = "gameover.jpg"
-WIN = "win.jpg"
+GAMEOVER = "assets/gameover.jpg"
+WIN = "assets/win.jpg"
 WHITE = (255,255,255)
 BLACK = (0,0,0)
 GREEN = (0,255,0)
@@ -22,7 +22,7 @@ HOR_SPEED = 4
 VER_SPEED = -14
 CHAR_HEIGHT = 15
 CHAR_WIDTH = 15
-MAX_GRAVITY = CHAR_HEIGHT/2
+MAX_GRAVITY = CHAR_HEIGHT-1
 
 LINE_WIDTH = 2
 
@@ -166,7 +166,6 @@ def generateLevel():
     upper_win = np.array([100, 255, 100])
     maske = cv2.inRange(img, lower_win, upper_win)
     end = cv2.bitwise_and(img, img, mask= maske)
-    cv2.imshow("mask", end)
     eg = cv2.cvtColor(end, cv2.COLOR_BGR2GRAY)
     egb = cv2.GaussianBlur(eg, (5, 5), 0)
     endretval, end = cv2.threshold(egb, 0, 255, cv2.THRESH_BINARY)
@@ -241,10 +240,6 @@ def play():
                     player.rightCollision()
         player.draw()
 
-        for hline in hlines:
-            hline.draw()
-        for vline in vlines:
-            vline.draw()
         if player.getRect().top > HEIGHT:
             play=False
         for e in end:
