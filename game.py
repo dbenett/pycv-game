@@ -11,6 +11,7 @@ if len(sys.argv) < 2:
 
 pygame.init()
 GAMEOVER = "gameover.jpg"
+WIN = "win.jpg"
 WHITE = (255,255,255)
 BLACK = (0,0,0)
 GREEN = (0,255,0)
@@ -33,8 +34,12 @@ HEIGHT = 700
 imgfn = sys.argv[1]
 bg = pygame.image.load(imgfn)
 bg = pygame.transform.scale(bg, (WIDTH, HEIGHT))
+
 go = pygame.image.load(GAMEOVER)
 gameover = pygame.transform.scale(go, (WIDTH, HEIGHT))
+
+wi = pygame.image.load(WIN)
+win = pygame.transform.scale(wi, (WIDTH, HEIGHT))
 
 screen = pygame.display.set_mode((WIDTH,HEIGHT))
 
@@ -144,10 +149,6 @@ def generateLevel():
     gimg = cv2.GaussianBlur(gimg, (5, 5), 0)
     edged = cv2.Canny(gimg, 50, 120)
 
-    # show the original image and the edge detected image
-    cv2.imshow("Image", img)
-    cv2.imshow("Edged", edged)
-
     imgw, imgh, _ = img.shape
 
     lower_player = np.array([100, 0, 0])
@@ -159,25 +160,24 @@ def generateLevel():
     retval, player = cv2.threshold(pgb, 0, 255, cv2.THRESH_BINARY)
     playercontour = getBiggestWhiteBlob(player)
     playerpt = (snapToGrid(playercontour[0][0][0], playercontour[0][0][1]))
-    playerpt = (playerpt[0] + 40, playerpt[1] - 30)
     print ("x, y: {},{}".format(playerpt[0],playerpt[1]))
 
-    # convert to grayscale
-    imggray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    cv2.equalizeHist(imggray, imggray)
-    cv2.imshow("eq", cv2.resize(imggray, (0,0), fx=0.2, fy=0.2))
-    imggray = cv2.GaussianBlur(imggray, (5,5), 0)
-
-    retval, threshold = cv2.threshold(imggray, 210, 255, cv2.THRESH_BINARY)
-    cv2.bitwise_not (threshold, threshold)
-    cv2.imshow("thrsh", cv2.resize(threshold, (0,0), fx=0.2, fy=0.2))
+    lower_win = np.array([0, 100, 0])
+    upper_win = np.array([100, 255, 100])
+    maske = cv2.inRange(img, lower_win, upper_win)
+    end = cv2.bitwise_and(img, img, mask= maske)
+    cv2.imshow("mask", end)
+    eg = cv2.cvtColor(end, cv2.COLOR_BGR2GRAY)
+    egb = cv2.GaussianBlur(eg, (5, 5), 0)
+    endretval, end = cv2.threshold(egb, 0, 255, cv2.THRESH_BINARY)
+    endarea = getBiggestWhiteBlob(end)
+    # playerpt = (snapToGrid(playercontour[0], playercontour[0]))
+    end=[]
+    for e in endarea:
+        end.append(e[0])
 
     nonzero = cv2.findNonZero(edged)
 
-    #print(nonzero)
-
-    #for pt in nonzero:
-    #    lines.append(Line(LINE_WIDTH, LINE_WIDTH, pt[0][0], pt[0][1]))
 
     vlines = []
     hlines = []
@@ -187,7 +187,6 @@ def generateLevel():
     for pt in pts:
         hlines.append(Line(LINE_WIDTH, LINE_WIDTH, pt[0], pt[1]))
 
-    #print(sorted(pts))
     groups = []
     for k, g in groupby(sorted(pts), key=itemgetter(0)):
         groups.append(list(g)) # Store group iterator as a list
@@ -201,15 +200,16 @@ def generateLevel():
                 hlines.remove(Line(LINE_WIDTH, LINE_WIDTH, g_i[0], g_i[1]))
             prev_y = g_i[1]
 
-    return (Player(playerpt[0], playerpt[1]), hlines, vlines)
+    return (Player(playerpt[0], playerpt[1]), hlines, vlines, end)
 
-player, hlines, vlines = generateLevel()
+player, hlines, vlines, end = generateLevel()
 player_orig = (player.x, player.y)
-#lines.append(Line(400, LINE_WIDTH, 100, 300))
-#lines.append(Line(LINE_WIDTH, 500, 400, 100))
 
 # -------- Main Program Loop -----------
 def play():
+    win = False
+    player.x = player_orig[0]
+    player.y = player_orig[1]
     play=True
     while(play):
         for event in pygame.event.get():
@@ -247,21 +247,29 @@ def play():
             vline.draw()
         if player.getRect().top > HEIGHT:
             play=False
-
+        for e in end:
+            if player.getRect().collidepoint(e):
+                play=False
+                win=True
         pygame.display.flip()
-
+    return win
+w = play()
 while not quit:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            quit = True
     # --- Main event loop
-    play()
     pressed = pygame.key.get_pressed()
     if pressed[pygame.K_r]:
-        player.x = player_orig[0]
-        player.y = player_orig[1]
-        play()
+        w = play()
     if pressed[pygame.K_q]:
         quit=True
-    screen.blit(gameover, [0, 0])
-    pygame.display.flip()
+    if w:
+        screen.blit(win, [0, 0])
+        pygame.display.flip()
+    else:
+        screen.blit(gameover, [0, 0])
+        pygame.display.flip()
 
 
 pygame.quit()
