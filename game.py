@@ -10,7 +10,7 @@ if len(sys.argv) < 2:
     sys.exit(2)
 
 pygame.init()
-
+GAMEOVER = "gameover.jpg"
 WHITE = (255,255,255)
 BLACK = (0,0,0)
 GREEN = (0,255,0)
@@ -33,6 +33,8 @@ HEIGHT = 700
 imgfn = sys.argv[1]
 bg = pygame.image.load(imgfn)
 bg = pygame.transform.scale(bg, (WIDTH, HEIGHT))
+go = pygame.image.load(GAMEOVER)
+gameover = pygame.transform.scale(go, (WIDTH, HEIGHT))
 
 screen = pygame.display.set_mode((WIDTH,HEIGHT))
 
@@ -202,46 +204,64 @@ def generateLevel():
     return (Player(playerpt[0], playerpt[1]), hlines, vlines)
 
 player, hlines, vlines = generateLevel()
-
+player_orig = (player.x, player.y)
 #lines.append(Line(400, LINE_WIDTH, 100, 300))
 #lines.append(Line(LINE_WIDTH, 500, 400, 100))
 
 # -------- Main Program Loop -----------
+def play():
+    play=True
+    while(play):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                quit = True
+        pressed = pygame.key.get_pressed()
+        if pressed[pygame.K_LEFT]:
+            player.moveLeft()
+        if pressed[pygame.K_RIGHT]:
+            player.moveRight()
+        if pressed[pygame.K_UP]:
+            player.jump()
+        #screen.fill(WHITE)
+
+        screen.blit(bg, [0, 0])
+
+        player.update()
+        for hline in hlines:
+            if hline.getRect().colliderect(player.getRect()):
+                player.stopFall(hline.getRect())
+
+        for vline in vlines:
+            if vline.getRect().colliderect(player.getRect()):
+                lcollide = abs(vline.getRect().right - player.getRect().left)
+                rcollide = abs(vline.getRect().left - player.getRect().right)
+                if lcollide < rcollide:
+                    player.leftCollision()
+                else:
+                    player.rightCollision()
+        player.draw()
+
+        for hline in hlines:
+            hline.draw()
+        for vline in vlines:
+            vline.draw()
+        if player.getRect().top > HEIGHT:
+            play=False
+
+        pygame.display.flip()
+
 while not quit:
     # --- Main event loop
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            quit = True
+    play()
     pressed = pygame.key.get_pressed()
-    if pressed[pygame.K_LEFT]:
-        player.moveLeft()
-    if pressed[pygame.K_RIGHT]:
-        player.moveRight()
-    if pressed[pygame.K_UP]:
-        player.jump()
-    #screen.fill(WHITE)
-
-    screen.blit(bg, [0, 0])
-    player.update()
-    for hline in hlines:
-        if hline.getRect().colliderect(player.getRect()):
-            player.stopFall(hline.getRect())
-
-    for vline in vlines:
-        if vline.getRect().colliderect(player.getRect()):
-            lcollide = abs(vline.getRect().right - player.getRect().left)
-            rcollide = abs(vline.getRect().left - player.getRect().right)
-            if lcollide < rcollide:
-                player.leftCollision()
-            else:
-                player.rightCollision()
-    player.draw()
-
-    for hline in hlines:
-        hline.draw()
-    for vline in vlines:
-        vline.draw()
-
+    if pressed[pygame.K_r]:
+        player.x = player_orig[0]
+        player.y = player_orig[1]
+        play()
+    if pressed[pygame.K_q]:
+        quit=True
+    screen.blit(gameover, [0, 0])
     pygame.display.flip()
+
 
 pygame.quit()
