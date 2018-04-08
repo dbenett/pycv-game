@@ -19,8 +19,9 @@ RED = (255,0,0)
 
 HOR_SPEED = 4
 VER_SPEED = -14
-CHAR_HEIGHT = 30
-CHAR_WIDTH = 20
+CHAR_HEIGHT = 15
+CHAR_WIDTH = 15
+MAX_GRAVITY = CHAR_HEIGHT/2
 
 LINE_WIDTH = 2
 
@@ -49,7 +50,7 @@ class Player():
         self.y = y
         self.vY = 0
         self.isJumping = False
-    
+
     def moveRight(self):
         self.x += HOR_SPEED
 
@@ -69,7 +70,8 @@ class Player():
 
     def update(self):
         self.y += self.vY
-        self.vY += 1
+        if self.vY <= MAX_GRAVITY:
+            self.vY += 1
 
     def getRect(self):
         return pygame.Rect(self.x,self.y,CHAR_WIDTH,CHAR_HEIGHT)
@@ -85,7 +87,7 @@ class Player():
 
     def draw(self):
         pygame.draw.rect(screen, RED, self.getRect())
-    
+
     def reset(self):
         self.x = 250
         self.y = 250
@@ -114,6 +116,11 @@ class Line():
     def __repr__(self):
         return self.__str__()
 
+    def __eq__(self, other):
+        if isinstance(self, other.__class__):
+            return (self.x == other.x and self.y == other.y and self.width == other.width and self.height == other.height)
+        return False
+
 def getBiggestWhiteBlob(img):
     _, contours, hierarchy = cv2.findContours(img,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
@@ -134,7 +141,7 @@ def generateLevel():
     gimg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     gimg = cv2.GaussianBlur(gimg, (5, 5), 0)
     edged = cv2.Canny(gimg, 50, 120)
-     
+
     # show the original image and the edge detected image
     cv2.imshow("Image", img)
     cv2.imshow("Edged", edged)
@@ -150,6 +157,7 @@ def generateLevel():
     retval, player = cv2.threshold(pgb, 0, 255, cv2.THRESH_BINARY)
     playercontour = getBiggestWhiteBlob(player)
     playerpt = (snapToGrid(playercontour[0][0][0], playercontour[0][0][1]))
+    playerpt = (playerpt[0] + 40, playerpt[1] - 30)
     print ("x, y: {},{}".format(playerpt[0],playerpt[1]))
 
     # convert to grayscale
@@ -165,7 +173,7 @@ def generateLevel():
     nonzero = cv2.findNonZero(edged)
 
     #print(nonzero)
-    
+
     #for pt in nonzero:
     #    lines.append(Line(LINE_WIDTH, LINE_WIDTH, pt[0][0], pt[0][1]))
 
@@ -178,45 +186,18 @@ def generateLevel():
         hlines.append(Line(LINE_WIDTH, LINE_WIDTH, pt[0], pt[1]))
 
     #print(sorted(pts))
-    '''groups = []
+    groups = []
     for k, g in groupby(sorted(pts), key=itemgetter(0)):
         groups.append(list(g)) # Store group iterator as a list
-    print(groups)
     for g in groups:
-        x = g[0][0]
-        g = sorted(g)
-        y = g[0][1]
-        count = 1
-        ind = 1
-        while ind < len(g):
-            if g[ind][1] == y + count * GRID_WIDTH:
-                count += 1
-            else:
-                height = g[ind-1][1] - y
-                newline = Line(LINE_WIDTH, height, x, y)
-                vlines.append(newline)
-                count = 0
-                y = g[ind][1]
-            ind += 1
-    groups = []
-    for k, g in groupby(sorted(pts, key=itemgetter(1)), key=itemgetter(1)):
-        groups.append(list(g))
-    for g in groups:
-        y = g[0][1]
-        g = sorted(g)
-        x = g[0][0]
-        count = 1
-        ind = 1
-        while ind < len(g):
-            if g[ind][0] == x + count * GRID_WIDTH:
-                count += 1
-            else:
-                width = g[ind-1][0] - x
-                newline = Line(width, LINE_WIDTH, x, y)
-                hlines.append(newline)
-                count = 0
-                x = g[ind][0]
-            ind += 1'''
+        g = sorted(g, key=itemgetter(1))
+        prev_x = g[0][0]
+        prev_y = g[0][1]
+        for g_i in g[1:]:
+            if abs(prev_y - g_i[1]) <= GRID_WIDTH:
+                vlines.append(Line(LINE_WIDTH, LINE_WIDTH, g_i[0], g_i[1]))
+                hlines.remove(Line(LINE_WIDTH, LINE_WIDTH, g_i[0], g_i[1]))
+            prev_y = g_i[1]
 
     return (Player(playerpt[0], playerpt[1]), hlines, vlines)
 
@@ -242,7 +223,6 @@ while not quit:
 
     screen.blit(bg, [0, 0])
     player.update()
-
     for hline in hlines:
         if hline.getRect().colliderect(player.getRect()):
             player.stopFall(hline.getRect())
@@ -258,10 +238,10 @@ while not quit:
     player.draw()
 
     for hline in hlines:
-        hline.draw()    
+        hline.draw()
     for vline in vlines:
         vline.draw()
-    
+
     pygame.display.flip()
-    
+
 pygame.quit()
