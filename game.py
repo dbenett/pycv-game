@@ -169,15 +169,16 @@ def generateLevel():
     #for pt in nonzero:
     #    lines.append(Line(LINE_WIDTH, LINE_WIDTH, pt[0][0], pt[0][1]))
 
+    vlines = []
+    hlines = []
     pts = set()
     for pt in nonzero:
         pts.add(snapToGrid(pt[0][0], pt[0][1]))
-    #for pt in pts:
-    #    lines.append(Line(LINE_WIDTH, LINE_WIDTH, pt[0], pt[1]))
+    for pt in pts:
+        hlines.append(Line(LINE_WIDTH, LINE_WIDTH, pt[0], pt[1]))
 
     #print(sorted(pts))
-    groups = []
-    vlines = []
+    '''groups = []
     for k, g in groupby(sorted(pts), key=itemgetter(0)):
         groups.append(list(g)) # Store group iterator as a list
     print(groups)
@@ -198,7 +199,6 @@ def generateLevel():
                 y = g[ind][1]
             ind += 1
     groups = []
-    hlines = []
     for k, g in groupby(sorted(pts, key=itemgetter(1)), key=itemgetter(1)):
         groups.append(list(g))
     for g in groups:
@@ -216,32 +216,7 @@ def generateLevel():
                 hlines.append(newline)
                 count = 0
                 x = g[ind][0]
-            ind += 1
-
-    '''line = Line(LINE_WIDTH, 0, -1, -1)
-    for pt in sorted(pts):
-        if line.x < 0:
-            line.x = pt[0]
-            line.y = pt[1]
-        elif line.x == pt[0]:
-            if line.y + line.height + GRID_WIDTH == pt[1]:
-                line.height += GRID_WIDTH
-        else:
-            if line.height > GRID_WIDTH:
-                lines.append(line)
-            line = Line(LINE_WIDTH, 0, -1, -1)
-    line = Line(LINE_WIDTH, 0, -1, -1)
-    for pt in sorted(pts, key=lambda pt:(pt[1], pt[0])):
-        if line.x < 0:
-            line.x = pt[0]
-            line.y = pt[1]
-        elif line.y == pt[1]:
-            if line.x + line.width + GRID_WIDTH == pt[0]:
-                line.width += GRID_WIDTH
-        else:
-            if line.width > GRID_WIDTH:
-                lines.append(line)
-            line = Line(0, LINE_WIDTH, -1, -1)'''
+            ind += 1'''
 
     return (Player(playerpt[0], playerpt[1]), hlines, vlines)
 
